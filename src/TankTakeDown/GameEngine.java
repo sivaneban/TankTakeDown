@@ -16,7 +16,7 @@ public class GameEngine {
     private boolean alive;
     private String myTank;
     private ArrayList<Brick> brickList;
-
+    private ArrayList<Bullet> bulletList;
     private ArrayList<Tank> tankList;
     private GameWindow gameWindow;
     private MapDisplayUnit[][] mapDisplay;
@@ -26,6 +26,7 @@ public class GameEngine {
         this.gameFinished = false;
         this.alive = false;
         brickList = new ArrayList<Brick>();
+        bulletList = new ArrayList<Bullet>();
         tankList = new ArrayList<Tank>();
         this.gameWindow = gameWindow;
         this.mapDisplay = mapDisplay;
@@ -121,7 +122,7 @@ public class GameEngine {
                will have x,y cordinates of bricks as string*/
             String[] bricks = elements[1].split("[;,]");
             for (int i=0; i<bricks.length; i+=2){   // since bricks array has both x,y cordinates i is incremented by 2
-                Brick brick = new Brick(Integer.parseInt(bricks[i]), Integer.parseInt(bricks[i+1]));
+                Brick brick = new Brick(Integer.parseInt(bricks[i]), Integer.parseInt(bricks[i+1]),0);
                 brickList.add(brick);
                 mapDisplay[brick.getX()][brick.getY()].setGameObject(brick);
                 mapDisplay[brick.getX()][brick.getY()].draw();
@@ -227,10 +228,22 @@ public class GameEngine {
             tank.setDirection(Integer.parseInt(playerDetails[3]));
             mapDisplay[tank.getX()][tank.getY()].setGameObject(tank);
             mapDisplay[tank.getX()][tank.getY()].draw();
+            if (playerDetails[4].equals("1")){
+                try {
+                    Bullet b = new Bullet(tank.getX(), tank.getY(), tank.getDirection(), mapDisplay);
+                    b.setX(b.getNextX());
+                    b.setY(b.getNextY());
+                    mapDisplay[b.getX()][b.getY()].draw(5, 15, b.getImage());
+                    new Thread(b).start();
+                } catch (IOException ex) {
+                    System.out.println("Error loading image for bullet.");
+                }
+            }
         }
         String[] brickDetails = mapUpdate[mapUpdate.length - 1].split("[;,]");
         for (int i = 0; i < brickDetails.length; i += 3) {
             Brick brick = brickList.get(i/3);
+            brick.setDamageLevel(Integer.parseInt(brickDetails[i+2]));
             mapDisplay[brick.getX()][brick.getY()].draw();
         }
     }

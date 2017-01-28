@@ -50,11 +50,14 @@ public class GameWindow extends javax.swing.JFrame {
         }
         
     }
+  
+    
     
     private String ip = "127.0.0.1";
     private int port = 6000;
     private MapDisplayUnit[][] mapDisplay;
     private GameEngine gameEngine;
+    private AI ai;
     
     /**
      * Creates new form GameWindow
@@ -64,6 +67,7 @@ public class GameWindow extends javax.swing.JFrame {
         btnJoinGame.requestFocus();
         KeyboardFocusManager keyManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         keyManager.addKeyEventDispatcher(new CustomDispathcher());
+        this.ai=new AI();        
         this.mapDisplay = new MapDisplayUnit[10][10];
         for (int i=0; i<10; i++){
             for (int j=0; j<10; j++){
@@ -73,7 +77,7 @@ public class GameWindow extends javax.swing.JFrame {
             }
         }
         gameEngine = new GameEngine(this, mapDisplay);
-     
+        
     }
     
     
@@ -121,7 +125,7 @@ public class GameWindow extends javax.swing.JFrame {
         );
         pnlMapLayout.setVerticalGroup(
             pnlMapLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 471, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
         );
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
@@ -259,9 +263,10 @@ public class GameWindow extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(pnlMap, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(24, Short.MAX_VALUE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(24, Short.MAX_VALUE))
+                    .addComponent(pnlMap, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
         );
 
         pack();
@@ -285,6 +290,7 @@ public class GameWindow extends javax.swing.JFrame {
             txtPort.setEnabled(true);
             btnJoinGame.setEnabled(true);
         }
+            //ai.collectCoin(ip, port);
     }//GEN-LAST:event_btnJoinGameActionPerformed
 
     public void showStatus(String status){
