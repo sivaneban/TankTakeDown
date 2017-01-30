@@ -53,8 +53,8 @@ public class GameWindow extends javax.swing.JFrame {
   
     
     
-    private String ip = "127.0.0.1";
-    private int port = 6000;
+    public String ip = "127.0.0.1";
+    public int port = 6000;
     private MapDisplayUnit[][] mapDisplay;
     private GameEngine gameEngine;
     private AI ai;
@@ -65,8 +65,8 @@ public class GameWindow extends javax.swing.JFrame {
     public GameWindow() {
         initComponents();
         btnJoinGame.requestFocus();
-        KeyboardFocusManager keyManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-        keyManager.addKeyEventDispatcher(new CustomDispathcher());
+//        KeyboardFocusManager keyManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+//        keyManager.addKeyEventDispatcher(new CustomDispathcher());
         this.ai=new AI();        
         this.mapDisplay = new MapDisplayUnit[10][10];
         for (int i=0; i<10; i++){

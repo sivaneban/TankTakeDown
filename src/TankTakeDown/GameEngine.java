@@ -2,9 +2,12 @@
 package TankTakeDown;
 
 import Models.*;
+import PathFinder.*;
 import java.io.IOException;
 import static java.lang.Thread.sleep;
 import java.util.ArrayList;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -20,6 +23,8 @@ public class GameEngine {
     private ArrayList<Tank> tankList;
     private GameWindow gameWindow;
     private MapDisplayUnit[][] mapDisplay;
+    private ShortestPathFinder spf;
+    private final BlockingQueue<CoinPack> queue = new ArrayBlockingQueue<>(150);
     
     public GameEngine(GameWindow gameWindow,MapDisplayUnit[][] mapDisplay){
         this.gameStarted = false;
@@ -161,6 +166,8 @@ public class GameEngine {
             System.out.println("IOException while loading image for tank.");
             JOptionPane.showMessageDialog(gameWindow, "An error occured while loading tanks. Cannot find an image","IOException",JOptionPane.ERROR_MESSAGE);
         }
+        initializePathFinder();
+        collectCoin();
     }
     
     private void handleCoinPack(String details){
@@ -171,6 +178,11 @@ public class GameEngine {
         mapDisplay[x][y].setGameObject(coin);
         mapDisplay[x][y].setCoin(true);
         mapDisplay[x][y].draw();
+        try {
+            queue.put(coin);
+        } catch (InterruptedException ex) {
+
+        }
         final MapDisplayUnit[][] map = mapDisplay;      // need by the thread below
         new Thread(){       // thread that will remove coin from map if it didn't collected by any player before time out
             private int cor_x,cor_y;
@@ -182,7 +194,11 @@ public class GameEngine {
                     cor_y = y;
                     map = mapDisplay;
                     sleep(timeOut);
-                    
+                    queue.poll();
+                    if (map[cor_x][cor_y].hasCoin()){
+                        map[cor_x][cor_y].setGameObject(null);
+                        map[cor_x][cor_y].draw();
+                    }
                 } catch (InterruptedException ex) {
                     Logger.getLogger(GameEngine.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -209,7 +225,11 @@ public class GameEngine {
                     cor_y = y;
                     map = mapDisplay;
                     sleep(timeOut);
-                                   } catch (InterruptedException ex) {
+                    if (map[cor_x][cor_y].hasLife()){
+                        map[cor_x][cor_y].setGameObject(null);
+                        map[cor_x][cor_y].draw();
+                    }
+                }catch (InterruptedException ex) {
                     Logger.getLogger(GameEngine.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -228,6 +248,8 @@ public class GameEngine {
             tank.setDirection(Integer.parseInt(playerDetails[3]));
             mapDisplay[tank.getX()][tank.getY()].setGameObject(tank);
             mapDisplay[tank.getX()][tank.getY()].draw();
+            mapDisplay[tank.getX()][tank.getY()].setLife(false);
+            mapDisplay[tank.getX()][tank.getY()].setCoin(false);
             if (playerDetails[4].equals("1")){
                 try {
                     Bullet b = new Bullet(tank.getX(), tank.getY(), tank.getDirection(), mapDisplay);
@@ -247,6 +269,102 @@ public class GameEngine {
             mapDisplay[brick.getX()][brick.getY()].draw();
         }
     }
+      private void initializePathFinder() {
+        int[][] obstacleMap = new int[10][10];
+        System.out.println("Start Initialize pathFinder");
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                //System.out.print(obstacleMap[j][i]);
+                MapDisplayUnit e;
+                e = mapDisplay[i][j];
+                if (e.getGameObject() instanceof Brick || e.getGameObject() instanceof WaterPit
+                        || e.getGameObject() instanceof WaterPit) {
+                    obstacleMap[j][i] = 1;
+                }
+                System.out.print(obstacleMap[j][i]);
+            }
+            System.out.println(" ");
+        }
+        System.out.println("Finish Initialize pathFinder");
+        spf = new ShortestPathFinder(10, 10, obstacleMap);
+        //collectCoin();
+    }
+      
+       private void collectCoin() {
+        new Thread() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        if(queue != null){
+                        CoinPack coin = queue.take();
+                        if ((tankList.get(0)).getX() < 10 && (tankList.get(0)).getY() < 10 && coin.getX() < 10 && coin.getY() < 10 ) {
+                            System.out.println("Player: <" + (tankList.get(0)).getX() + " , " + (tankList.get(0)).getY() + ">  Coin: <" + coin.getX() + " , " + coin.getY() + ">");
+                            Path path = spf.getShortestPath((tankList.get(0)).getX(), (tankList.get(0)).getY(), coin.getX(), coin.getY());
+                            if (path != null) {
+                                for (int i = 0; i < path.getLength(); i++) {
+                                    int nX = path.getX(i);
+                                    int nY = path.getY(i);
+                                    System.out.print("<" + nX + " , " + nY + ">  ");
+                                    System.out.println();
+                                    String message = null;
+                                    System.out.println("////////////////////////// 1");
+                                    if ((tankList.get(0)).getX() == nX) {
+                                        System.out.println("////////////////////////// Horizontal");
+                                        if ((tankList.get(0)).getY() > nY) {
+                                            System.out.println("////////////////////////// Left");
+                                            message = Command.LEFT;
+                                        } else if ((tankList.get(0)).getY() < nY) {
+                                            System.out.println("////////////////////////// Right");
+                                            message = Command.RIGHT;
+                                        }
+                                        System.out.println("message is "+message);
+                                    }
+                                    
+                                      if (message!=null){
+                                            System.out.println("////////////////////////// notNull  1");
+                                            try {
+                                                System.out.println("////////////////////////// try 1");
+                                                NetworkHandler.getInstance().send(gameWindow.ip, gameWindow.port, message);
+                                                message = null;
+                                            } catch (IOException ex) {
+                                                System.out.println("Commmand "+message+" not sent");
+                                            }
+                                        }
+                                    if ((tankList.get(0)).getY() == nY) {
+                                        System.out.println("////////////////////////// Vertical");
+                                        if ((tankList.get(0)).getX() > nX) {
+                                            System.out.println("////////////////////////// Up");
+                                            message = Command.UP;
+                                        } else if ((tankList.get(0)).getX() < nX) {
+                                            System.out.println("////////////////////////// Down");
+                                            message = Command.DOWN;
+                                        }
+                                        System.out.println("message is "+message);
+                                    }
+                                       if (message!=null){
+                                            System.out.println("////////////////////////// notNull  2");
+                                            try {
+                                                System.out.println("////////////////////////// try 2");
+                                                NetworkHandler.getInstance().send(gameWindow.ip, gameWindow.port, message);
+                                                message=null;
+                                            } catch (IOException ex) {
+                                                System.out.println("Commmand "+message+" not sent");
+                                            }
+                                        }
+                                    
+                                    Thread.sleep(1100);
+                                }
+                            }
+                        }
+                    }
+                    } catch (InterruptedException ex) {
+                    }
+                }
+            }
+        }.start();
+    }
+      
     
     public boolean isGameStarted(){
         return gameStarted;
